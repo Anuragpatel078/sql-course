@@ -347,3 +347,155 @@ SELECT
     manager_tbl.last_name as "Manager Last Name"
 FROm employees as emp
 LEFT JOIN employees as manager_tbl ON emp.manager_id = manager_tbl.employee_id;
+
+-- ! Aggregation start
+-- ! Give me total count customers on our platform
+
+SELECT * FROM customers;
+
+SELECT 
+    COUNT(*) AS cust_count,
+    COUNT(phone) AS cust_with_phone_number
+FROM customers;
+
+SELECT COUNT(DISTINCT country) from customers;
+
+-- ! Give me total revenue across all orders till now
+
+
+SELECT 
+    order_item_id,
+    quantity,
+    unit_price,
+    quantity * unit_price as total_selling_val
+ FROM order_items;
+
+SELECT SUM(quantity * unit_price) as total_revenue FROM order_items;
+
+-- ! give average price of product across all products
+
+SELECT * FROM products;
+
+SELECT 
+    ROUND(AVG(price), 2) as avg_price
+ FROM products;
+
+
+ -- ! Give me min price and max price across all products
+
+ SELECT price FROM products ORDER BY price ASC LIMIT 1;
+
+ SELECT MIN(price) as minimum_price, MAX(price) as max_price
+ FROM products;
+
+ SELECT 
+    COUNT(*) as total_product,
+    ROUND(AVG(price), 2) as average_price,
+    MIN(price) as min_price,
+    MAX(price) as max_price,
+    SUM(stock_quantity) as total_stock
+ FROM products;
+
+SELECT * FROM products;
+SELECT * FROM categories;
+-- SELECT * FROM employees;
+
+
+SELECT COUNT(*) as product_count FROM products;
+
+-- ! Give me total number of products in each category
+
+SELECT category_id, COUNT(*) 
+FROM products
+GROUP BY category_id;
+
+-- ! Give me total number of active and inactive
+-- ! products in each category
+
+SELECT category_id, is_active, COUNT(*) 
+FROM products
+GROUP BY category_id, is_active;
+
+
+-- ! Give me total number of products in each category
+-- ! include category name in the results
+
+SELECT 
+    p.category_id, 
+    c.category_name,
+    COUNT(*) 
+FROM products as p
+LEFT JOIN categories as c on c.category_id = p.category_id
+GROUP BY p.category_id, c.category_name;
+
+
+-- ! Give me total number of products in each category
+
+-- ! and give me categories having > 5 products
+
+SELECT category_id, COUNT(*) 
+FROM products
+GROUP BY category_id
+HAVING COUNT(*) > 5;
+
+
+-- ! Find departments having more than one managed employee,
+-- ! where their combined salary of whole department exceeds 200000 rupees.
+
+
+SELECT 
+    department_id,
+    COUNT(*),
+    SUM(salary) as total_dep_salary
+FROM employees
+WHERE manager_id IS NOT NULL
+GROUP BY department_id
+HAVING COUNT(*) > 1;
+
+-- ! ========= Aggregation End ========
+--! Subquery start
+-- ! Give me all the customer having at least one cancelled order
+SELECT *
+FROM customers;
+SELECT *
+FROM orders;
+SELECT *
+FROM customers
+WHERE customer_id IN (
+        SELECT customer_id
+        FROM orders
+        WHERE status = 'cancelled'
+    );
+-- ! Give me all the products which are having 
+-- ! price > average price across all products
+-- ! p1 - 100, p2 - 200, p3 = 1000, p4 - 200, p5- 900
+-- ! 1500/4 - average -> 375
+-- ! p3, p5 -> returned
+SELECT *
+FROM products
+WHERE price > (
+        SELECT AVG(price)
+        from products
+);
+
+-- ! give me sales on category level
+--! electronics - 3000
+-- ! clothing - 4000
+-- ! give me categories having sales > 500
+-- ! return category name in the result
+
+SELECT * FROM orders;
+SELECT * FROM order_items;
+
+-- ! derived table
+SELECT c.category_name,
+    category_stats.category_sales
+FROM (
+        SELECT p.category_id as stat_id,
+            SUM(oi.quantity * oi.unit_price) as category_sales
+        FROM order_items as oi
+            LEFT JOIN products as p ON p.product_id = oi.product_id
+        GROUP BY p.category_id
+    ) as category_stats
+    LEFT JOIN categories as c ON c.category_id = category_stats.stat_id
+WHERE category_sales > 500;
